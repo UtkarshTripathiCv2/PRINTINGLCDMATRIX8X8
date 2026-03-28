@@ -1,29 +1,36 @@
-#include <MD_Parola.h>
-#include <MD_MAX72xx.h>
-#include <SPI.h>
+#include "LedControl.h"
 
-// Define hardware type (Most 4-in-1 modules use FC16_HW)
-#define HARDWARE_TYPE MD_MAX72XX::FC16_HW
-#define MAX_DEVICES 4 // You have 4 matrices
+// Pin 12 = DIN, Pin 11 = CLK, Pin 10 = CS, 4 = Number of matrices
+LedControl lc = LedControl(12, 11, 10, 4);
 
-#define CLK_PIN   13
-#define DATA_PIN  11
-#define CS_PIN    10
-
-// Hardware SPI setup (faster and smoother)
-MD_Parola myDisplay = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
+// Manual Byte Definitions for "RISE"
+// Each byte represents one row (8 bits)
+byte R[8] = {0xFC, 0x46, 0x46, 0x7C, 0x4C, 0x46, 0x46, 0x00};
+byte I[8] = {0x3C, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x3C};
+byte S[8] = {0x3E, 0x60, 0x60, 0x3C, 0x06, 0x06, 0x7C, 0x00};
+byte E[8] = {0x7E, 0x40, 0x40, 0x78, 0x40, 0x40, 0x7E, 0x00};
 
 void setup() {
-  myDisplay.begin();           // Initialize the object
-  myDisplay.setIntensity(5);   // Set brightness (0-15)
-  myDisplay.displayClear();    // Clear the display
-  
-  // print(text, alignment, speed, pause, effectIn, effectOut)
-  myDisplay.displayText("RISE", PA_CENTER, 0, 0, PA_PRINT, PA_NO_EFFECT);
+  for(int i=0; i<4; i++) {
+    lc.shutdown(i, false);       // Wake up the MAX7219
+    lc.setIntensity(i, 5);       // Set brightness
+    lc.clearDisplay(i);          // Clear the matrix
+  }
+}
+
+// Helper function to push the 8 bytes to a specific matrix address
+void displayLetter(int address, byte character[]) {
+  for(int row=0; row<8; row++) {
+    lc.setRow(address, row, character[row]);
+  }
 }
 
 void loop() {
-  if (myDisplay.displayAnimate()) {
-    myDisplay.displayReset();
-  }
+  // Manually assigning one letter to each of the 4 matrices
+  displayLetter(0, R); // First Matrix (leftmost)
+  displayLetter(1, I); // Second Matrix
+  displayLetter(2, S); // Third Matrix
+  displayLetter(3, E); // Fourth Matrix (rightmost)
+  
+  delay(2000); 
 }
